@@ -73,8 +73,8 @@ steps:
 
 # Install ReportGenerator globally
 - script: |
-    dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.26
-  displayName: 'Install ReportGenerator (v5.1.26)'
+    dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.1.26 || dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.26
+  displayName: 'Ensure ReportGenerator (v5.1.26) is installed'
 
 # Add ReportGenerator to PATH
 - script: |
