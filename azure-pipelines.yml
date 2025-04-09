@@ -46,6 +46,7 @@ steps:
   displayName: 'Write build info'
   workingDirectory: Tailspin.SpaceGame.Web/wwwroot
 
+
 # Restore project dependencies
 - task: DotNetCoreCLI@2
   displayName: 'Restore project dependencies'
@@ -53,6 +54,7 @@ steps:
     command: 'restore'
     projects: '**/*.csproj'
 
+# Build project
 - task: DotNetCoreCLI@2
   displayName: 'Build the project - $(buildConfiguration)'
   inputs:
@@ -60,23 +62,44 @@ steps:
     arguments: '--no-restore --configuration $(buildConfiguration)'
     projects: '**/*.csproj'
 
+# Run unit tests with coverage
 - task: DotNetCoreCLI@2
-  displayName: 'Run unit tests - $(buildConfiguration)'
+  displayName: 'Run unit tests with coverage'
   inputs:
     command: 'test'
-    arguments: '--no-build --configuration $(buildConfiguration)'
+    arguments: '--no-build --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/'
     publishTestResults: true
     projects: '**/*.Tests.csproj'
 
+# Install ReportGenerator globally
+- script: |
+    dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.26
+  displayName: 'Install ReportGenerator (v5.1.26)'
+
+# Add ReportGenerator to PATH
+- script: |
+    reportgenerator -reports:$(Build.SourcesDirectory)/**/coverage.cobertura.xml -targetdir:$(Build.SourcesDirectory)/CodeCoverage -reporttypes:HtmlInline_AzurePipelines
+  displayName: 'Create code coverage report'
+  env:
+    PATH: $(PATH):~/.dotnet/tools
+
+- task: PublishCodeCoverageResults@2
+  displayName: 'Publish code coverage report'
+  inputs:
+    summaryFileLocation: '$(Build.SourcesDirectory)/**/coverage.cobertura.xml'
+    pathToSources: '$(Build.SourcesDirectory)'
+    codeCoverageTool: 'Cobertura'
+
+# Publish final project build
 - task: DotNetCoreCLI@2
-  displayName: 'Publish the project - $(buildConfiguration)'
+  displayName: 'Publish the project'
   inputs:
     command: 'publish'
     projects: '**/*.csproj'
-    publishWebProjects: false
     arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
     zipAfterPublish: true
 
+# Publish as build artifact
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   condition: succeeded()
