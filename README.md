@@ -1,3 +1,4 @@
+[![Build Status](https://dev.azure.com/andrewmcellistrim/CI-CD_Training/_apis/build/status%2Fa-mcellistrim.mslearn-tailspin-spacegame-web?branchName=main)](https://dev.azure.com/andrewmcellistrim/CI-CD_Training/_build/latest?definitionId=2&branchName=main)
 
 # Contributing
 
