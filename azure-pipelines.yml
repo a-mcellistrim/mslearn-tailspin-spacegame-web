@@ -61,8 +61,8 @@ steps:
 
 # Install ReportGenerator globally
 - script: |
-    dotnet tool install --global dotnet-reportgenerator-globaltool
-  displayName: 'Install ReportGenerator'
+    dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.26
+  displayName: 'Install ReportGenerator (v5.1.26)'
 
 # Add ReportGenerator to PATH
 - script: |
@@ -71,12 +71,12 @@ steps:
   env:
     PATH: $(PATH):~/.dotnet/tools
 
-# Publish code coverage
-- task: PublishCodeCoverageResults@1
+- task: PublishCodeCoverageResults@2
   displayName: 'Publish code coverage report'
   inputs:
-    codeCoverageTool: 'cobertura'
     summaryFileLocation: '$(Build.SourcesDirectory)/**/coverage.cobertura.xml'
+    pathToSources: '$(Build.SourcesDirectory)'
+    codeCoverageTool: 'Cobertura'
 
 # Publish final project build
 - task: DotNetCoreCLI@2
