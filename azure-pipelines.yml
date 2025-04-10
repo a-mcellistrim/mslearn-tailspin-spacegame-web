@@ -102,7 +102,7 @@ steps:
   inputs:
     command: push
     packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/**/*.nupkg'
-    publishVstsFeed: 'c9c57c21-3325-7f52-abbd-f881c6062388'
+    publishVstsFeed: 'Tailspin.SpaceGame.Web.Models'
   continueOnError: true
   enabled: true
 
