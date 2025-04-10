@@ -84,7 +84,7 @@ steps:
     packDirectory: '$(Build.ArtifactStagingDirectory)/packages'
     versioningScheme: 'byPrereleaseNumber'
     majorVersion: '1'
-    minorVersion: '0'
+    minorVersion: '1'
     patchVersion: '0'
 
 # Debug - List packages
