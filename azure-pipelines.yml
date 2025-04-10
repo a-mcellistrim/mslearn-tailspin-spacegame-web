@@ -95,6 +95,7 @@ steps:
   inputs:
     command: 'pack'
     projects: '**/*.csproj'
+    packDirectory: '$(Build.ArtifactStagingDirectory)/packages'
     arguments: '--no-build --configuration $(buildConfiguration)'
     versioningScheme: byPrereleaseNumber
     majorVersion: '1'
@@ -105,9 +106,16 @@ steps:
   displayName: 'Publish NuGet package'
   inputs:
     command: push
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/**/*.nupkg'
     feedPublish: '$(CI-CD_Training)/Tailspin.SpaceGame.Web.Models'
     allowPackageConflicts: true
   condition: succeeded()
+
+  - script: |
+    echo "Listing .nupkg files in Build.ArtifactStagingDirectory:"
+    dir /s /b "$(Build.ArtifactStagingDirectory)\*.nupkg"
+  displayName: 'Debug - List .nupkg files'
+  condition: always()
 
 # Publish final project build
 - task: DotNetCoreCLI@2
