@@ -1,57 +1,131 @@
 trigger:
-- '*'
+  - "*"
 
 pool:
-  vmImage: 'ubuntu-20.04'
-  demands:
-  - npm
+  name: "Default" # Your self-hosted agent pool name
 
 variables:
-  buildConfiguration: 'Release'
-  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
-  dotnetSdkVersion: '6.x'
+  buildConfiguration: "Release"
+  wwwrootDir: "Tailspin.SpaceGame.Web/wwwroot"
+  dotnetSdkVersion: "6.x"
 
 steps:
-- task: UseDotNet@2
-  displayName: 'Use .NET SDK $(dotnetSdkVersion)'
-  inputs:
-    version: '$(dotnetSdkVersion)'
+  # Install Node.js and npm (for self-hosted Linux agents)
+  - script: |
+      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+      node -v
+      npm -v
+    displayName: "Install Node.js and npm"
 
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: '5.9.1'
+  # Use .NET SDK 6.x
+  - task: UseDotNet@2
+    displayName: "Use .NET SDK $(dotnetSdkVersion)"
+    inputs:
+      packageType: sdk
+      version: "$(dotnetSdkVersion)"
 
-- task: Npm@1
-  displayName: 'Run npm install'
-  inputs:
-    verbose: false
+  # Install npm packages
+  - script: |
+      npm ci
+    displayName: "Install npm packages"
 
-- script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
-  displayName: 'Compile Sass assets'
+  # Compile SASS using local node_modules
+  - script: |
+      npx sass Tailspin.SpaceGame.Web/wwwroot:Tailspin.SpaceGame.Web/wwwroot
+    displayName: "Compile Sass assets"
 
-- task: gulp@1
-  displayName: 'Run gulp tasks'
+  # Run Gulp tasks using npx
+  - script: |
+      npx gulp
+    displayName: "Run gulp tasks"
 
-- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
-  displayName: 'Write build info'
-  workingDirectory: $(wwwrootDir)
+  # Write build info to a file
+  - script: |
+      echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt
+    displayName: "Write build info"
+    workingDirectory: Tailspin.SpaceGame.Web/wwwroot
 
-- task: DotNetCoreCLI@2
-  displayName: 'Build the project - $(buildConfiguration)'
-  inputs:
-    command: 'build'
-    arguments: '--no-restore --configuration $(buildConfiguration)'
-    projects: '**/*.csproj'
+  # Restore project dependencies
+  - task: DotNetCoreCLI@2
+    displayName: "Restore project dependencies"
+    inputs:
+      command: "restore"
+      projects: "**/*.csproj"
 
-- task: DotNetCoreCLI@2
-  displayName: 'Publish the project - $(buildConfiguration)'
-  inputs:
-    command: 'publish'
-    projects: '**/*.csproj'
-    publishWebProjects: false
-    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
-    zipAfterPublish: true
+  - task: NuGetCommand@2
+    displayName: 'Restore project dependencies'
+    inputs:
+    command: 'restore'
+    restoreSolution: '**/*.sln'
+    feedsToUse: 'select'
+    vstsFeed: '$(System.TeamProject)/Tailspin.SpaceGame.Web.Models'
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
-  condition: succeeded()
+  # Build project
+  - task: DotNetCoreCLI@2
+    displayName: "Build the project - $(buildConfiguration)"
+    inputs:
+      command: "build"
+      arguments: "--no-restore --configuration $(buildConfiguration)"
+      projects: "**/*.csproj"
+
+  # Run unit tests with coverage
+  - task: DotNetCoreCLI@2
+    displayName: "Run unit tests with coverage"
+    inputs:
+      command: "test"
+      arguments: "--no-build --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=$(Build.SourcesDirectory)/TestResults/Coverage/"
+      publishTestResults: true
+      projects: "**/*.Tests.csproj"
+
+  # Install ReportGenerator globally
+  - script: |
+      dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.1.26 || dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.26
+    displayName: "Ensure ReportGenerator (v5.1.26) is installed"
+
+  # Add ReportGenerator to PATH
+  - script: |
+      reportgenerator -reports:$(Build.SourcesDirectory)/**/coverage.cobertura.xml -targetdir:$(Build.SourcesDirectory)/CodeCoverage -reporttypes:HtmlInline_AzurePipelines
+    displayName: "Create code coverage report"
+    env:
+      PATH: $(PATH):~/.dotnet/tools
+
+  - task: PublishCodeCoverageResults@2
+    displayName: "Publish code coverage report"
+    inputs:
+      summaryFileLocation: "$(Build.SourcesDirectory)/**/coverage.cobertura.xml"
+      pathToSources: "$(Build.SourcesDirectory)"
+      codeCoverageTool: "Cobertura"
+
+  - task: DotNetCoreCLI@2
+    displayName: "Pack the project - $(buildConfiguration)"
+    inputs:
+      command: "pack"
+      projects: "**/*.csproj"
+      arguments: "--no-build --configuration $(buildConfiguration)"
+      versioningScheme: byPrereleaseNumber
+      majorVersion: "1"
+      minorVersion: "0"
+      patchVersion: "0"
+
+  - task: NuGetCommand@2
+    displayName: "Publish NuGet package"
+    inputs:
+      command: push
+      feedPublish: "$(System.TeamProject)/Tailspin.SpaceGame.Web.Models"
+      allowPackageConflicts: true
+    condition: succeeded()
+
+  # Publish final project build
+  - task: DotNetCoreCLI@2
+    displayName: "Publish the project"
+    inputs:
+      command: "publish"
+      projects: "**/*.csproj"
+      arguments: "--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)"
+      zipAfterPublish: true
+
+  # Publish as build artifact
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Artifact: drop"
+    condition: succeeded()
