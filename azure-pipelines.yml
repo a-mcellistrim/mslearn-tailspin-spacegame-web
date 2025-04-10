@@ -94,20 +94,6 @@ steps:
   displayName: 'Debug - List output files'
   condition: always()
 
-
-
-# Option 1: Just the feed name
-- task: NuGetCommand@2
-  displayName: 'Push NuGet packages - Option 1'
-  inputs:
-    command: push
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/**/*.nupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: 'Tailspin.SpaceGame.Web.Models'
-  continueOnError: true
-  enabled: false
-
-# Option 2: Project/feed format
 - task: NuGetCommand@2
   displayName: 'Push NuGet packages - Option 2'
   inputs:
@@ -117,19 +103,6 @@ steps:
     publishVstsFeed: 'CI-CD_Training/Tailspin.SpaceGame.Web.Models'
   continueOnError: true
   enabled: true # Enable this if Option 1 fails
-
-# Option 3: Use DotNetCoreCLI task
-- task: DotNetCoreCLI@2
-  displayName: 'Push NuGet packages - Option 3'
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/**/*.nupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: 'Tailspin.SpaceGame.Web.Models'
-  continueOnError: true
-  enabled: false  # Enable this if Options 1 and 2 fail
-
-
 
 # Publish the web project
 - task: DotNetCoreCLI@2
