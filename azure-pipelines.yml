@@ -89,50 +89,24 @@ steps:
     pathToSources: '$(Build.SourcesDirectory)'
     codeCoverageTool: 'Cobertura'
 
-# Check if projects are packable
-- script: |
-    echo "Checking which projects have <IsPackable> property set:"
-    findstr /s /i "<IsPackable>" *.csproj
-    echo "Checking which projects have <PackageId> property set:"
-    findstr /s /i "<PackageId>" *.csproj
-  displayName: 'Debug - Check packable projects'
-  continueOnError: true
-
-# Modified pack task with more explicit settings
 - task: DotNetCoreCLI@2
   displayName: 'Pack the project - $(buildConfiguration)'
   inputs:
     command: 'pack'
-    packagesToPack: '**/*.csproj'
-    nobuild: true
-    includesymbols: true
-    includesource: true
+    projects: '**/*.csproj'
+    arguments: '--no-build --configuration $(buildConfiguration)'
     versioningScheme: byPrereleaseNumber
     majorVersion: '1'
     minorVersion: '0'
     patchVersion: '0'
-    outputDir: '$(Build.ArtifactStagingDirectory)/packages'
-  continueOnError: false
 
-# Debug - List packages before pushing
-- script: |
-    echo "Listing .nupkg files in Build.ArtifactStagingDirectory:"
-    dir /s /b "$(Build.ArtifactStagingDirectory)\*.nupkg"
-    echo "Listing all files in Build.ArtifactStagingDirectory:"
-    dir /s /b "$(Build.ArtifactStagingDirectory)"
-  displayName: 'Debug - List .nupkg files'
-  condition: always()
-
-# Try using DotNetCoreCLI for pushing packages instead of NuGetCommand
-- task: DotNetCoreCLI@2
-  displayName: 'Push NuGet packages'
+- task: NuGetCommand@2
+  displayName: 'Publish NuGet package'
   inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/**/*.nupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: '$(CI-CD_Training)/Tailspin.SpaceGame.Web.Models'
+    command: push
+    feedPublish: '$(System.TeamProject)/Tailspin.SpaceGame.Web.Models'
+    allowPackageConflicts: true
   condition: succeeded()
-  continueOnError: true
 
 # Publish final project build
 - task: DotNetCoreCLI@2
