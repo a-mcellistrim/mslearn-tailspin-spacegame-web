@@ -111,7 +111,7 @@ steps:
     allowPackageConflicts: true
   condition: succeeded()
 
-  - script: |
+- script: |
     echo "Listing .nupkg files in Build.ArtifactStagingDirectory:"
     dir /s /b "$(Build.ArtifactStagingDirectory)\*.nupkg"
   displayName: 'Debug - List .nupkg files'
