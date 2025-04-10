@@ -105,6 +105,7 @@ steps:
     nuGetFeedType: 'internal'
     publishVstsFeed: 'Tailspin.SpaceGame.Web.Models'
   continueOnError: true
+  enabled: false
 
 # Option 2: Project/feed format
 - task: NuGetCommand@2
@@ -115,7 +116,7 @@ steps:
     nuGetFeedType: 'internal'
     publishVstsFeed: 'CI-CD_Training/Tailspin.SpaceGame.Web.Models'
   continueOnError: true
-  enabled: false  # Enable this if Option 1 fails
+  enabled: true  # Enable this if Option 1 fails
 
 # Option 3: Use DotNetCoreCLI task
 - task: DotNetCoreCLI@2
